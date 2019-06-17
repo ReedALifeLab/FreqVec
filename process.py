@@ -5,6 +5,7 @@ Created on Sat Mar 23 22:47:24 2019
 @author: Nick, Ananthan
 """
 import string
+import nltk
 from gensim.parsing import (strip_multiple_whitespaces, strip_tags, strip_punctuation,
                             strip_numeric, remove_stopwords, strip_short, stem_text)
 
@@ -32,6 +33,18 @@ def preprocess(s):
 def tokenize_str(s):
     s=preprocess(s)
     s_ls=s.split(" ")
+    return s_ls
+
+def tokenize_str_hp(s,t):
+    s_tokens = nltk.word_tokenize(s)
+    tags = nltk.pos_tag(s_tokens)
+    nouns = [word for word,pos in tags 
+             if (pos == 'NN' or pos == 'NNP' or pos == 'NNS' or pos == 'NNPS')]
+    s = ' '.join(nouns).lower()
+    with open("hnp_proc/"+t.replace(" ", "_")+".txt", "w") as text_file:
+        text_file.write(s)
+    s = preprocess(s)
+    s_ls = s.split(" ")
     return s_ls
 
 
