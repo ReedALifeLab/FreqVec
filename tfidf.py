@@ -15,11 +15,11 @@ import os
 def t_n_d(file):
     s = file.read()
     des = re.findall(r'\"([^]]*)\"', s)
-    t = s[:s.index(',"')]
+    t = s[:s.index(',')]
     return t,des
     
 
-def make_dict_of_words(path):
+def make_dict_of_words(path, errorfile):
     """
     :return: dict of words and freq in corpus 
     """
@@ -33,8 +33,11 @@ def make_dict_of_words(path):
             des_ls = sp.tokenize_str(des[0])
             num_docs+=1
         except:
-            des_ls = sp.tokenize_str("aaa")
+#            des_ls = sp.tokenize_str("aaa")
+            des_ls = []
             print("missed ", filename)
+            if errorfile is not None:
+                errorfile.write(filename + " missed in dict-making step\n")
         for word in des_ls:
             if word not in word_dict:
                 word_dict[word]=1
@@ -59,7 +62,7 @@ def make_seq_tfidf_vec(seq_ls,words,w_num,n_d):
             vec[i]=count*math.log(n_d/w_num[words[i]])
     return vec
 
-def make_vec_df(path,w_dict,n_docs):
+def make_vec_df(path,w_dict,n_docs, errorfile):
     data=[]
     firms=[]
     words=list(w_dict.keys())
@@ -73,8 +76,10 @@ def make_vec_df(path,w_dict,n_docs):
         try:
             des_ls = sp.tokenize_str(des[0])
         except:
-            des_ls = sp.tokenize_str("aaa")
+#            des_ls = sp.tokenize_str("aaa")
             print("missed ", filename)
+            if errorfile is not None:
+                errorfile.write(filename + " missed in vector-making step\n")
         vec = make_seq_tfidf_vec(des_ls,words,w_dict,n_docs)
         data.append(vec)
         firms.append(title)
@@ -83,6 +88,7 @@ def make_vec_df(path,w_dict,n_docs):
     df = pd.DataFrame(data, columns=firms)
     return df
 
-wdict,num_d=make_dict_of_words('test_data')
-out_df=make_vec_df('test_data',wdict,num_d)
-out_df.to_csv('tfidf_vec_tests.csv')
+def run_tfidf(errorfile=None):
+    wdict,num_d=make_dict_of_words('test_data', errorfile)
+    out_df=make_vec_df('test_data',wdict,num_d, errorfile)
+    out_df.to_csv('tfidf_vec_tests.csv')
