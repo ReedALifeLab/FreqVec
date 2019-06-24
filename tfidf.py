@@ -24,24 +24,28 @@ def make_dict_of_words(path):
     :return: dict of words and freq in corpus 
     """
     word_dict={}
-    num_docs=0
+    total_docs=0
     for filename in os.listdir(path):
         file = open(path+"/"+filename,'r', encoding="utf8")
         print(filename)
         title,des=t_n_d(file)
         try:
             des_ls = sp.tokenize_str(des[0])
-            num_docs+=1
+            total_docs+=1
         except:
             des_ls = sp.tokenize_str("aaa")
             print("missed ", filename)
+        words_in_doc=[]
         for word in des_ls:
-            if word not in word_dict:
+            if word not in word_dict and word not in words_in_doc:
                 word_dict[word]=1
-            else:
+                words_in_doc.append(word)
+            elif word not in words_in_doc:
                 word_dict[word]+=1
+                words_in_doc.append(word)
+    final_dict = {k: v for k, v in word_dict.items() if v/total_docs<=0.2}
     print('made dict')
-    return word_dict,num_docs
+    return final_dict
 
 
 def make_seq_tfidf_vec(seq_ls,words,w_num,n_d):
