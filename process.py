@@ -5,9 +5,9 @@ Created on Sat Mar 23 22:47:24 2019
 @author: Nick, Ananthan
 """
 import string
-import nltk
 from gensim.parsing import (strip_multiple_whitespaces, strip_tags, strip_punctuation,
                             strip_numeric, remove_stopwords, strip_short, stem_text)
+import nltk
 
 
 def to_lowercase(s):
@@ -46,7 +46,6 @@ def tokenize_str_hp(s,t):
     s = preprocess(s)
     s_ls = s.split(" ")
     return s_ls
-
 
 FILTERS = [to_lowercase, strip_multiple_whitespaces, strip_tags, strip_punctuation,
            preserve_special_punct, strip_numeric, remove_stopwords, strip_short, stem_text]
