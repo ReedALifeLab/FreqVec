@@ -51,21 +51,33 @@ class Model:
             file = open(path+"/"+filename,'r', encoding="utf8")
             title,des=t_n_d(file)
             try:
+                #print(des)
                 if self.tags=="all":
                     des_ls = sp.tokenize_str(des)
                 elif self.tags=='nouns':
+                    print(self.tags)
                     des_ls = sp.tokenize_str_hp(des,title)
+                #print(des_ls)
                 total_docs+=1
             except:
                 des_ls = []
                 if errorfile is not None:
                     errorfile.write(filename + " could not be added to the dictionary\n")
                 
+            words_in_doc = set()
             for word in des_ls:
-                if word not in word_dict:
-                    word_dict[word] = 1
-                else:
-                    word_dict[word] += 1
+                if word not in word_dict and word not in words_in_doc:
+                    word_dict[word]=1
+                    words_in_doc.add(word)
+                elif word not in words_in_doc:
+                    word_dict[word]+=1
+                    words_in_doc.add(word)
+            #for word in des_ls:
+                #if word not in word_dict:
+                    #word_dict[word] = 1
+                #else:
+                    #word_dict[word] += 1
+        print(word_dict['coca'])
         final_dict = {k: v for k, v in word_dict.items() if v/total_docs<=self.th}
         print('made dict with tags: ',self.tags,', th: ',self.th)
         self.dict=final_dict
@@ -91,8 +103,9 @@ class Model:
                     vec[i] = 1
         elif self.kind == 'freq':
             for word in seq_ls:
-                vec[words_to_index[word]] += 1
-            for i in range(len(seq_ls)):
+                if word in words_to_index:
+                    vec[words_to_index[word]] += 1
+            for i in range(len(words)):
                 vec[i] = 1 + math.log(vec[i]) if vec[i] > 0 else vec[i]
         elif self.kind=='tfidf':
             for word in seq_ls:
@@ -106,12 +119,14 @@ class Model:
         else:
             vec =vec
         
+        #print(vec)
         return vec
     
     def make_vec_df(self,path,w_dict, prefix, errorfile):
         data=[]
         firms=[]
         words=list(w_dict.keys())
+        #print(w_dict['coca'])
         words_to_index = {word : words.index(word) for word in words}
         word_dict_df=pd.DataFrame(words)
         word_dict_df.to_csv(prefix + '/freqvec_dict.csv')
@@ -141,7 +156,7 @@ def make_model(tags,kind,th,errorfile=None,prefix=""):
     model = Model(tags,kind,th)
     print('making model')
     model.make_vec_df('new_data',model.make_dict_of_words('new_data', errorfile), prefix, errorfile)
-    model.model_vecs.to_csv(prefix + '/'+tags+'_'+kind+'_'+str(th)+'_vectors.csv')
+    model.model_vecs.to_csv(prefix + ''+tags+'_'+kind+'_'+str(th)+'_vectors.csv')
     print('made vectors')
     return prefix + '/'+tags+'_'+kind+'_'+str(th)+'_vectors.csv'
 
