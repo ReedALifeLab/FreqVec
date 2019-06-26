@@ -141,8 +141,8 @@ def make_model(tags,kind,th,errorfile=None,prefix=""):
     model = Model(tags,kind,th)
     print('making model')
     model.make_vec_df('new_data',model.make_dict_of_words('new_data', errorfile), prefix, errorfile)
-    model.model_vecs.to_csv(prefix + '/'+tags+'_'+kind+'_'+th+'_vectors.csv')
+    model.model_vecs.to_csv(prefix + '/'+tags+'_'+kind+'_'+str(th)+'_vectors.csv')
     print('made vectors')
-    return prefix + '/'+tags+'_'+kind+'_'+th+'_vectors.csv'
+    return prefix + '/'+tags+'_'+kind+'_'+str(th)+'_vectors.csv'
 
-#make_model('nouns','freq',1.0)
+make_model('nouns','freq',.2)
