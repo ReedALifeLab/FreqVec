@@ -137,9 +137,12 @@ class Model:
         self.model_vecs=df
         return df
     
-def make_model(prefix="", tags,kind,th,errorfile=None):
+def make_model(tags,kind,th,errorfile=None,prefix=""):
     model = Model(tags,kind,th)
-    model.make_vec_df('test_data',model.make_dict_of_words('test_data', errorfile), prefix, errorfile)
+    print('making model')
+    model.make_vec_df('new_data',model.make_dict_of_words('new_data', errorfile), prefix, errorfile)
     model.model_vecs.to_csv(prefix + '/'+tags+'_'+kind+'_'+th+'_vectors.csv')
     print('made vectors')
     return prefix + '/'+tags+'_'+kind+'_'+th+'_vectors.csv'
+
+#make_model('nouns','freq',1.0)
