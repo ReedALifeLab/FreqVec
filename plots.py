@@ -10,6 +10,7 @@ import seaborn as sns
 import matplotlib.pylab as plt
 import pandas
 
+#works well for 675 input files, but will give poor labels for many more or less.
 def plot_heat_map(matrix,path):
     # height = plt.rcParams['font.size']  * matrix.shape[0] / 10
     # width = plt.rcParams['font.size'] * matrix.shape[1] / 10
