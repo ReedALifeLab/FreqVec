@@ -1,42 +1,31 @@
-#Automatically makes similarity matrices and heat maps for freq_vec. Needs to be run with the name of the raw output from Tobias' cleaner as a command line argument.
-#As an optional second argument, you can make output files with a specific suffix - useful if you want to test on several datasets in a row.
-import sys
+#Automatically makes similarity matrices and heat maps for given models.
+#To work, all the word vector files (WV models, Autotest, plots, process, sims, and Splitter) need to be in the same folder, along with the input csv test_data and hnp_proc folders.
+
+# import sys
 import os
 import Splitter
-import freq_vec
 import sims
 import plots
-import hnp_vec
+import WV_model
 
-prefix = sys.argv[2]
+# INPUTPATH should be the name of the csv containing raw extractor output.
+INPUTPATH = "dow_test_v2_raw.csv"
+# For each model that you want to make, put a tuple in MODELS_TO_TEST (tags, kind, threshold)
+MODELS_TO_TEST = [('all', 'boolean', 0.2),('all', 'boolean', 1.0),('all', 'freq', 0.2),('all', 'freq', 1.0),('all', 'tfidf', 0.2),('all', 'tfidf', 1.0),('nouns', 'boolean', 0.2),('nouns', 'boolean', 1.0),('nouns', 'freq', 0.2),('nouns', 'freq', 1.0),('nouns', 'tfidf', 0.2),('nouns', 'tfidf', 1.0)]
 
-os.mkdir(prefix)
-
-# PLOTPATHS = [prefix + "/freqvec_similarities.csv", prefix + "/HandP_similarities.csv", prefix + "/HandP_similarities_null.csv", prefix + "/freqvec_similarities_null.csv"]
-PLOTPATHS = [prefix + "/HandP_similarities.csv", prefix + "/freqvec_similarities.csv"]
-ERRORFILES = [prefix + "/freqvec_errors.txt", prefix + "/HandP_errors.txt"]
-# ERRORFILES = [prefix + "/freqvec_errors.txt"]
-# ERRORFILES = [None, prefix + "/HandP_errors.txt"]
-# MAKENULL = True
-MAKENULL = False
 
 for filename in os.listdir('test_data'):
     os.unlink('test_data/' + filename)
-
-Splitter.splitfile(sys.argv[1])
-EFs = []
-for ERRORFILE in ERRORFILES:
-    if ERRORFILE is not None:
-        EF = open(ERRORFILE, 'w')
-        numfiles = len(os.listdir('test_data'))
-        EF.write("Building test on " + sys.argv[1] + " with " + str(numfiles) + " documents.\n")
-    else:
-        EF = None
-    EFs += [EF]
-
-sims.run_sims(freq_vec.run_freq_vec(prefix, EFs[0]), "freqvec", prefix, MAKENULL)
-sims.run_sims(hnp_vec.run_hnp_vec(prefix, EFs[1]), "HandP", prefix, MAKENULL)
-plots.run_plots(PLOTPATHS)
-for EF in EFs:
-    if EF is not None:
-        EF.close()
+Splitter.splitfile(INPUTPATH)
+for modelspecs in MODELS_TO_TEST:
+    modelname = modelspecs[0] + "_" + modelspecs[1] + "_" + str(modelspecs[2])
+    os.mkdir(modelname)
+    PLOTPATHS = [modelname + "/" + modelname + "_similarities.csv", modelname + "/" + modelname + "_similarities_shuffled.csv"]
+    ERRORFILE = modelname + "/" + modelname + "_errors.txt"
+    EF = open(ERRORFILE, 'w')
+    numfiles = len(os.listdir('test_data'))
+    EF.write("Building " + modelname + " on " + INPUTPATH + " with " + str(numfiles) + " documents.\n")
+    sims.run_sims(WV_model.make_model(modelspecs[0], modelspecs[1], modelspecs[2], EF, modelname), modelname, modelname, True)
+    plots.run_plots(PLOTPATHS)
+    EF.close()
+    print('finished building ' + modelname)
