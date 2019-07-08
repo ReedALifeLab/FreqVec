@@ -61,8 +61,8 @@ class Model:
                 des_ls = []
                 if errorfile is not None:
                     dictfails += 1
-                    exc = str(sys.exc_info()[0])
-                    errorfile.write(filename + " failed in dictionary step: " + exc + "\n")
+                    exc1, exc2, exc3 = sys.exc_info()
+                    errorfile.write(filename + " failed in dictionary step: " + str(exc1) + " ; " + str(exc2)+ "\n")
             words_in_doc = set()
             for word in des_ls:
                 if word not in word_dict and word not in words_in_doc:
@@ -148,8 +148,8 @@ class Model:
             except:
                 if errorfile is not None:
                     vecfails += 1
-                    exc = str(sys.exc_info()[0])
-                    errorfile.write(filename + " failed in vector step: " + exc + "\n")
+                    exc1, exc2, exc3 = sys.exc_info()
+                    errorfile.write(filename + " failed in vector step: " + str(exc1) + " ; " + str(exc2)+ "\n")
             i+=1
         data = np.array(data).T.tolist()
         df = pd.DataFrame(data, columns=firms)
