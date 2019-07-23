@@ -14,9 +14,10 @@ import pandas
 def plot_heat_map(matrix,path, title):
     # height = plt.rcParams['font.size']  * matrix.shape[0] / 10
     # width = plt.rcParams['font.size'] * matrix.shape[1] / 10
-    sns.set(font_scale=0.002)
+    sns.set(font_scale=0.0035)
     fig, ax = plt.subplots(figsize=(2^15, 2^15))
-    p=sns.heatmap(matrix,vmin= 0.0, vmax = 1.0, linewidths=0.0, square=True, xticklabels=True, yticklabels=True).set_title(title)
+    # p=sns.heatmap(matrix,vmin= 0.0, vmax = 1.0, linewidths=0.0, square=True, xticklabels=True, yticklabels=True).set_title(title)
+    p=sns.heatmap(matrix,linewidths=0.0, square=True, xticklabels=True, yticklabels=True).set_title(title)
     p.figure.savefig(path, bbox_inches='tight')
     plt.clf()
 
