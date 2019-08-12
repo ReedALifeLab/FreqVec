@@ -9,7 +9,7 @@ from scipy import spatial as spat
 import numpy as np
 import random #random module produces pseudorandom numbers, so possibly not good enough for intensive analysis.
 
-def run_sims(vec_path, vec_name, prefix, make_shuffled_mat=False):
+def run_sims(vec_path, vec_name, prefix, make_shuffled_mat=False, diag_value = 0.0):
     """
     The cosine similarity of two vectors i and j is: 
                                                     (i dot j)
@@ -22,6 +22,7 @@ def run_sims(vec_path, vec_name, prefix, make_shuffled_mat=False):
     dots = np.dot(vec_raw_t, vec_raw) # entry i,j is the dot product of vectors i and j
     vec_norm = np.sqrt(dots.diagonal())[np.newaxis] # entry i is the norm of vector i
     sim_mat = ((dots) / np.dot(np.transpose(vec_norm), vec_norm))
+    np.fill_diagonal(sim_mat, diag_value)
     out=pd.DataFrame(sim_mat, columns = veccsv.columns, index = veccsv.columns)
     out.to_csv(prefix + "/" + vec_name + "_similarities.csv")
     print('made ' + vec_name + ' similarites')

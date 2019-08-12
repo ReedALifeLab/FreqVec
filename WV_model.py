@@ -27,7 +27,7 @@ class Model:
     def __init__(self,tags,kind,th=0.2):
         """
         :param tags:
-            "nouns" or "all"
+            "nouns", "all", or "sic"
         :param kind:
             "boolean", "freq" or "tfidf"
         :param th:
@@ -43,11 +43,23 @@ class Model:
         
     def make_dict_of_words(self,path, errorfile):
         """
-        :return: dict of words and freq in corpus 
+        :return: dict of words and freq in corpus. If tags are "sic", words are instead drawn from files in SIC_DESC_PATH, but frequency is still from corpus.
         """
         word_dict={}
         total_docs=0
         dictfails = 0
+        SIC_DESC_PATH = "sic_descriptions"
+        if self.tags == "sic":
+            word_dict = {}
+            for filename in os.listdir(SIC_DESC_PATH):
+                file = open(SIC_DESC_PATH + "/" + filename, 'r', encoding='utf8')
+                text = file.read()
+                des = set(sp.tokenize_str(text))
+                for word in des:
+                    if word not in word_dict:
+                        word_dict[word] = 0
+                file.close()
+
         for filename in os.listdir(path):
             file = open(path+"/"+filename,'r', encoding="utf8")
             title,des=t_n_d(file)
@@ -56,6 +68,8 @@ class Model:
                     des_ls = sp.tokenize_str(des)
                 elif self.tags=='nouns':
                     des_ls = sp.tokenize_str_hp(des,title)
+                elif self.tags =="sic":
+                    des_ls = sp.tokenize_str(des)
                 total_docs+=1
             except:
                 des_ls = []
@@ -63,14 +77,28 @@ class Model:
                     dictfails += 1
                     exc1, exc2, exc3 = sys.exc_info()
                     errorfile.write(filename + " failed in dictionary step: " + str(exc1) + " ; " + str(exc2)+ "\n")
-            words_in_doc = set()
-            for word in des_ls:
-                if word not in word_dict and word not in words_in_doc:
-                    word_dict[word]=1
-                    words_in_doc.add(word)
-                elif word not in words_in_doc:
-                    word_dict[word]+=1
-                    words_in_doc.add(word)
+            # words_in_doc = set()
+            file.close()
+            words = set(des_ls)
+            for word in words:
+                if self.tags == "sic":
+                    if word in word_dict:
+                        word_dict[word] += 1
+                else:
+                    if word not in word_dict:
+                        word_dict[word] = 1
+                    else:
+                        word_dict[word] += 1
+            # for word in des_ls:
+            #     if word not in word_dict and word not in words_in_doc:
+            #         if self.tags == "sic":
+            #             pass
+            #         else:
+            #             word_dict[word]=1
+            #             words_in_doc.add(word)
+            #     elif word not in words_in_doc:
+            #         word_dict[word]+=1
+            #         words_in_doc.add(word)
         final_dict = {k: v for k, v in word_dict.items() if v/total_docs<=self.th}
         if errorfile is not None:
             errorfile.write(str(dictfails) + " documents failed in dictionary step\n")
@@ -125,7 +153,7 @@ class Model:
         words=list(w_dict.keys())
         words_to_index = {word : words.index(word) for word in words}
         word_dict_df=pd.DataFrame(words)
-        word_dict_df.to_csv(prefix + '/' + prefix + '_dict.csv')
+        word_dict_df.to_csv(prefix + '/' + self.tags+'_'+self.kind+'_'+str(self.th)+'_dict.csv')
         i=1
         for filename in sorted(os.listdir(path)):
             file = open(path+"/"+filename,'r', encoding="utf8")
@@ -133,7 +161,7 @@ class Model:
             try:
                 if self.tags == 'nouns':
                     des_ls = sp.tokenize_str_hp(des, title)
-                elif self.tags == 'all':
+                elif self.tags == 'all' or self.tags == 'sic':
                     des_ls = sp.tokenize_str(des)
                 vec = self.make_seq_freq_vec(des_ls,words, words_to_index)
                 # data.append(vec)
@@ -151,6 +179,7 @@ class Model:
                     exc1, exc2, exc3 = sys.exc_info()
                     errorfile.write(filename + " failed in vector step: " + str(exc1) + " ; " + str(exc2)+ "\n")
             i+=1
+            file.close()
         data = np.array(data).T.tolist()
         df = pd.DataFrame(data, columns=firms)
         self.model_vecs=df
