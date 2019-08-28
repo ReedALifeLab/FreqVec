@@ -24,10 +24,12 @@ def t_n_d(file):
 
 class Model:
     
-    def __init__(self,tags,kind,th=0.2):
+    def __init__(self,tags,source,kind,th=0.2):
         """
         :param tags:
-            "nouns", "all", or "sic"
+            "nouns", or "words"
+        :param source:
+            "sic or 10k"
         :param kind:
             "boolean", "freq" or "tfidf"
         :param th:
@@ -40,6 +42,7 @@ class Model:
         self.tags=tags
         self.th=th
         self.kind=kind
+        self.source=source
         
     def make_dict_of_words(self,path, errorfile):
         """
@@ -49,7 +52,7 @@ class Model:
         total_docs=0
         dictfails = 0
         SIC_DESC_PATH = "sic_descriptions"
-        if self.tags == "sic":
+        if self.source == "sic":
             word_dict = {}
             for filename in os.listdir(SIC_DESC_PATH):
                 file = open(SIC_DESC_PATH + "/" + filename, 'r', encoding='utf8')
@@ -59,17 +62,14 @@ class Model:
                     if word not in word_dict:
                         word_dict[word] = 0
                 file.close()
-
         for filename in os.listdir(path):
             file = open(path+"/"+filename,'r', encoding="utf8")
             title,des=t_n_d(file)
             try:
-                if self.tags=="all":
+                if self.tags=="words":
                     des_ls = sp.tokenize_str(des)
                 elif self.tags=='nouns':
                     des_ls = sp.tokenize_str_hp(des,title)
-                elif self.tags =="sic":
-                    des_ls = sp.tokenize_str(des)
                 total_docs+=1
             except:
                 des_ls = []
@@ -81,10 +81,10 @@ class Model:
             file.close()
             words = set(des_ls)
             for word in words:
-                if self.tags == "sic":
+                if self.source == "sic":
                     if word in word_dict:
                         word_dict[word] += 1
-                else:
+                elif self.source == "10k":
                     if word not in word_dict:
                         word_dict[word] = 1
                     else:
@@ -102,7 +102,7 @@ class Model:
         final_dict = {k: v for k, v in word_dict.items() if v/total_docs<=self.th}
         if errorfile is not None:
             errorfile.write(str(dictfails) + " documents failed in dictionary step\n")
-        print('made dict with tags: ',self.tags,', th: ',self.th)
+        print('made dict with tags: ',self.tags, ', source: ',self.source,', th: ',self.th)
         self.dict=final_dict
         self.num_docs=total_docs
         return final_dict
@@ -153,7 +153,7 @@ class Model:
         words=list(w_dict.keys())
         words_to_index = {word : words.index(word) for word in words}
         word_dict_df=pd.DataFrame(words)
-        word_dict_df.to_csv(prefix + '/' + self.tags+'_'+self.kind+'_'+str(self.th)+'_dict.csv')
+        word_dict_df.to_csv(prefix + '/' + self.tags+"(" + self.source+")"+'_'+self.kind+'_'+str(self.th)+'_dict.csv')
         i=1
         for filename in sorted(os.listdir(path)):
             file = open(path+"/"+filename,'r', encoding="utf8")
@@ -161,7 +161,7 @@ class Model:
             try:
                 if self.tags == 'nouns':
                     des_ls = sp.tokenize_str_hp(des, title)
-                elif self.tags == 'all' or self.tags == 'sic':
+                elif self.tags == 'words':
                     des_ls = sp.tokenize_str(des)
                 vec = self.make_seq_freq_vec(des_ls,words, words_to_index)
                 # data.append(vec)
@@ -187,7 +187,7 @@ class Model:
             errorfile.write(str(vecfails) + " documents failed in vector step\n" + str(vecempty) + " documents contained no words after preprocessing\n")
         return df
     
-def make_model(tags,kind,th,errorfile=None,prefix=""):
+def make_model(tags, source,kind,th,errorfile=None,prefix=""):
     """
     For tags, kind, th: see Model.__init__()
     :errorfile:
@@ -195,11 +195,11 @@ def make_model(tags,kind,th,errorfile=None,prefix=""):
     :prefix:
         string: path to folder containing model's output.
     """
-    model = Model(tags,kind,th)
+    model = Model(tags,source,kind,th)
     print('making model')
     model.make_vec_df('test_data',model.make_dict_of_words('test_data', errorfile), prefix, errorfile)
-    model.model_vecs.to_csv(prefix + '/'+tags+'_'+kind+'_'+str(th)+'_vectors.csv')
+    model.model_vecs.to_csv(prefix + '/'+tags+"_"+source+'_'+kind+'_'+str(th)+'_vectors.csv')
     print('made vectors')
-    return prefix + '/'+tags+'_'+kind+'_'+str(th)+'_vectors.csv'
+    return prefix + '/'+tags+"_"+source+'_'+kind+'_'+str(th)+'_vectors.csv'
 
 # make_model('nouns','freq',.2)
