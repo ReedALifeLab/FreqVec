@@ -41,8 +41,8 @@ def tokenize_str_hp(s,t):
     nouns = [word for word,pos in tags 
              if (pos == 'NN' or pos == 'NNP' or pos == 'NNS' or pos == 'NNPS')]
     s = ' '.join(nouns).lower()
-    with open("hnp_proc/"+t.replace("/", "~").replace(" ", "_")+".txt", "w") as text_file:
-        text_file.write(s)
+    # with open("hnp_proc/"+t.replace("/", "~").replace(" ", "_")+".txt", "w") as text_file:
+    #     text_file.write(s)
     s = preprocess(s)
     s_ls = s.split(" ")
     return s_ls
