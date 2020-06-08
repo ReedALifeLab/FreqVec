@@ -4,13 +4,12 @@ Created on Mon Jun 24 14:19:28 2019
 
 @author: Ananthan, James
 """
-import psutil
 import numpy as np
 import pandas as pd
-from scipy import spatial as spat
+# from scipy import spatial as spat
 import process as sp
 import os
-from sklearn.preprocessing import normalize
+# from sklearn.preprocessing import normalize
 import math
 import sys
 
@@ -117,36 +116,20 @@ class Model:
         """
 
 
-
-
-        # if os.path.exists(prefix + '/' + self.tags+"(" + self.source+")"+'_'+self.kind+'_'+str(self.th)+'_dict.csv'):
-        #     df = pd.read_csv(prefix + '/' + self.tags+"(" + self.source+")"+'_'+self.kind+'_'+str(self.th)+'_dict.csv', index_col=0)
-        #     d = df['0'].to_dict()
-        #     self.dict = {v:k for k,v in d.items()}
-        #     return
-
-        # if MEMFILENAME is not None:
-        #     with open(MEMFILENAME, "a") as outfile:
-        #         outfile.write("make_dict_of_words\n")
-        #         outfile.write(str(psutil.virtual_memory()) + "\n")
-        #         outfile.write("available mem = " + str(psutil.virtual_memory().available) + "\n")
-
-
-
-        word_dict={}
+        docsInDict = 0
+        word_set=set()
         total_docs=0
         dictfails = 0
-        SIC_DESC_PATH = "sic_descriptions"
-        if self.source == "sic":
+        DESC_PATH = self.source + "_descriptions"
+        if self.source != "10k":
             word_dict = {}
-            for filename in os.listdir(SIC_DESC_PATH):
-                file = open(SIC_DESC_PATH + "/" + filename, 'r', encoding='utf8')
+            for filename in os.listdir(DESC_PATH):
+                file = open(DESC_PATH + "/" + filename, 'r', encoding='utf8')
                 text = file.read()
                 des = set(sp.tokenize_str(text))
-                for word in des:
-                    if word not in word_dict:
-                        word_dict[word] = 0
+                word_set = word_set.union(des)
                 file.close()
+        word_dict = {w:0 for w in word_set}
         for filename in os.listdir(path):
             file = open(path+"/"+filename,'r', encoding="utf8")
             title,des=t_n_d(file)
@@ -166,33 +149,22 @@ class Model:
             file.close()
             words = set(des_ls)
             for word in words:
-                if self.source == "sic":
-                    if word in word_dict:
-                        word_dict[word] += 1
-                elif self.source == "10k":
+                if self.source == "10k":
                     if word not in word_dict:
                         word_dict[word] = 1
                     else:
                         word_dict[word] += 1
-            # for word in des_ls:
-            #     if word not in word_dict and word not in words_in_doc:
-            #         if self.tags == "sic":
-            #             pass
-            #         else:
-            #             word_dict[word]=1
-            #             words_in_doc.add(word)
-            #     elif word not in words_in_doc:
-            #         word_dict[word]+=1
-            #         words_in_doc.add(word)
+                else:
+                    if word in word_dict:
+                        word_dict[word] += 1
+            docsInDict += 1
+            if docsInDict % 10000 == 0:
+                f = open("seen " + str(docsInDict) + " docs in dict", "w")
+                f.write(" ")
+                f.close()
         final_dict = {}
-        threshold_outcasts = {}
-        cutoff_outcasts = {}
         for k,v in word_dict.items():
-            if v/total_docs > self.th:
-                threshold_outcasts[k] = v
-            elif v <= self.minThr:
-                cutoff_outcasts[k] = v
-            else:
+            if (v / total_docs <= self.th) and (v > self.minThr):
                 final_dict[k] = v
         # final_dict = {k: v for k, v in word_dict.items() if v/total_docs<=self.th and v > self.minThr}
         if self.errorfile is not None:
@@ -200,13 +172,13 @@ class Model:
         print('made dict with tags: ',self.tags, ', source: ',self.source,', th: ',self.th, ' cutoff: ',self.minThr)
         self.dict=final_dict
         self.num_docs=total_docs
-        word_dict_df=pd.DataFrame(list(self.dict.keys()))
-        # word_dict_df.to_csv(prefix + '/' + self.tags+"_" + self.source+'_'+self.kind+'_'+str(self.th)+'_dict.csv')
-        word_dict_df.to_csv(prefix + '/' + self.asString()+'_dict.csv')
-        cut_dict_df = pd.DataFrame(list(cutoff_outcasts.keys()))
-        cut_dict_df.to_csv(prefix + '/' + self.asString() + '_cutoffs.csv')
-        thr_dict_df = pd.DataFrame(list(threshold_outcasts.keys()))
-        thr_dict_df.to_csv(prefix + '/' + self.asString() + '_thresholded.csv')
+        ws = []
+        vs = []
+        for k,v in self.dict.items():
+            ws.append(k)
+            vs.append(v)
+        word_dict_df=pd.DataFrame(data={"Words" : ws, "Freqs" : vs})
+        word_dict_df.to_csv(prefix + '/' + self.tags+"_" + self.source+'_'+self.kind+'_'+str(self.th)+'_dict.csv')
 
 
     def make_seq_freq_vec(self,seq_ls,words,words_to_index):
@@ -257,21 +229,10 @@ class Model:
         years = split_by_year(sorted(os.listdir(path)))
 
         for year in years:
-            # yearlen = 0
-
-            # if MEMFILENAME is not None:
-            #     with open(MEMFILENAME, "a") as outfile:
-            #         outfile.write("make_vec_df " + year[0][16:20] + "\n")
-            #         outfile.write(str(psutil.virtual_memory()) + "\n")
-            #         outfile.write("available mem = " + str(psutil.virtual_memory().available) + "\n")
 
             data=[]
             firms=[]
             for filename in year:
-                # yearlen += 1
-                # if year_size_lim is not None:
-                #     if year_size_lim < yearlen:
-                #         break
                 file = open(path+"/"+filename,'r', encoding="utf8")
                 title,des=t_n_d(file)
                 try:
@@ -293,26 +254,16 @@ class Model:
                         exc1, exc2, exc3 = sys.exc_info()
                         self.errorfile.write(filename + " failed in vector step: " + str(exc1) + " ; " + str(exc2)+ "\n")
                 file.close()
-                os.unlink(path+"/"+filename)
+                # os.unlink(path+"/"+filename)
             data = np.array(data).T.tolist()
             df = pd.DataFrame(data, columns=firms)
             outname = prefix + '/'+self.asString()+'_vectors_' + year[0][16:20] + '.csv'
             df.to_csv(outname)
 
-
-
-
-
-
-            # self.model_vecs.append((outname, year[0][16:20]))
-            # if MEMFILENAME is not None:
-            #     with open(MEMFILENAME, "a") as outfile:
-            #         outfile.write("make_sims " + year[0][16:20])
-            #         outfile.write(str(psutil.virtual_memory()) + "\n")
-            #         outfile.write("available mem = " + str(psutil.virtual_memory().available) + "\n")
-            self.make_sims(outname, year[0][16:20], prefix, 0.0)
-
-
+            year_str = year[0][16:20]
+            print('made vectors for ' + year_str)
+            self.make_sims(outname, year_str, prefix, 0.0)
+            print('made similarity matrix for ' + year_str)
 
 
 
@@ -320,20 +271,9 @@ class Model:
             self.errorfile.write(str(vecfails) + " documents failed in vector step\n" + str(vecempty) + " documents contained no words after preprocessing\n")
 
 
-
-
-
-
-
-
     def make_sims(self,vecName, year, prefix, diag=0.0):
         outName = prefix + '/'+self.asString()+'_sims_' + year + '.csv'
         make_sim_mat(vecName, outName, diag)
-
-    # def make_sims(self, prefix, diag=0.0):
-    #     for (vecName, year) in self.model_vecs:
-    #         outName = prefix + '/'+self.tags+"_"+self.source+'_'+self.kind+'_'+str(self.th)+'_sims_' + year + '.csv'
-    #         make_sim_mat(vecName, outName, diag)
 
 
 def make_model(tags, source,kind,th,minThr = 0, errorfile=None,prefix=""):
@@ -349,16 +289,29 @@ def make_model(tags, source,kind,th,minThr = 0, errorfile=None,prefix=""):
     model.make_dict_of_words('test_data', prefix)
     print('made dict')
     model.make_vec_df('test_data', prefix)
-    print('made vectors')
-    model.make_sims(prefix, 0.0)
-    print('made sims')
+    print('made vectors and similarity matrices')
+    # model.make_sims(prefix, 0.0) """these reports are now done for individual years"""
+    # print('made sims')
 
-# MEMFILENAME = "memtest_output.txt"
-year_size_lim = None
+
+
+
+
+
+
+
 INPUTPATH = "all_10k_raw.csv"
-# INPUTPATH = "dow_test_v2_raw.csv"
-# MODELS_TO_TEST = [('nouns', '10k', 'tfidf', 1.0), ('nouns', '10k', 'boolean', 1.0), ('nouns', '10k', 'boolean', 0.2)]
-MODELS_TO_TEST = [('nouns', '10k', 'tfidf', 1.0, 100)]
+
+MODELS_TO_TEST = [('nouns', 'naics', 'boolean', 0.2, 0), ('nouns', 'naics', 'boolean', 1.0, 0), ('nouns', '10k', 'boolean', 1.0, 100), ('nouns', '10k', 'boolean', 0.2, 100)]
+
+
+
+
+
+
+
+
+
 
 if not os.path.exists('test_data'):
     os.mkdir('test_data')
@@ -371,7 +324,6 @@ splitfile(INPUTPATH, 'test_data')
 
 for modelspecs in MODELS_TO_TEST:
     modelname = modelspecs[0]+"_"+modelspecs[1] + "_" + modelspecs[2] + "_" + str(modelspecs[3]) + "-" + str(modelspecs[4])
-    # modelname = modelspecs[0] + "_" + modelspecs[1] + "_" + str(modelspecs[2]) + "_" + INPUTPATH[:-8]
     outputpath = modelname
     if not os.path.exists(outputpath):
         os.mkdir(outputpath)
@@ -380,3 +332,6 @@ for modelspecs in MODELS_TO_TEST:
     make_model(modelspecs[0], modelspecs[1], modelspecs[2], modelspecs[3], modelspecs[4], EF, outputpath)
     EF.close()
     print('finished building ' + modelname)
+
+for filename in os.listdir('test_data'):
+    os.unlink('test_data/' + filename)
